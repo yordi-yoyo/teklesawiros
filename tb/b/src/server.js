@@ -38,16 +38,22 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/admin', adminAuthRoutes);
 app.use('/api/admins', adminRoutes);
 
+const useSSL = process.env.DB_SSL === 'true';
+
 async function start() {
   // createDatabaseIfNotExist=true equivalent: create the DB before Sequelize connects to it.
-  const conn = await mysql.createConnection({
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 3306,
-    user: process.env.DB_USERNAME || 'root',
-    password: process.env.DB_PASSWORD || '',
-  });
-  await conn.query(`CREATE DATABASE IF NOT EXISTS \`${process.env.DB_NAME || 'religious_db'}\``);
-  await conn.end();
+  // Skip this on managed hosts like Aiven — the database already exists there,
+  // and free-tier accounts usually don't have permission to CREATE DATABASE anyway.
+  if (!useSSL) {
+    const conn = await mysql.createConnection({
+      host: process.env.DB_HOST || 'localhost',
+      port: process.env.DB_PORT || 3306,
+      user: process.env.DB_USERNAME || 'root',
+      password: process.env.DB_PASSWORD || '',
+    });
+    await conn.query(`CREATE DATABASE IF NOT EXISTS \`${process.env.DB_NAME || 'religious_db'}\``);
+    await conn.end();
+  }
 
   await sequelize.authenticate();
   await sequelize.sync({ alter: true }); // ddl-auto: update equivalent
