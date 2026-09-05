@@ -56,7 +56,7 @@ export default function Login() {
             መድኃኔዓለም ቤተ ክርስቲያን
           </div>
           <div className="login-header-sub">
-            አቡነ ሰላማ ከሳቴ ብርሃን  ጉባኤ ቤት| Student Management System
+            አቡነ ሰላማ ከሣቴ ብርሃን  ጉባኤ ቤት| Student Management System
           </div>
         </div>
         <img src={tekleImg} alt="ተክለ ሳዊሮስ" className="login-header-img" />
