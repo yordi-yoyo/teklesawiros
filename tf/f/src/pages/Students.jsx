@@ -4,9 +4,11 @@ import MobileBreadcrumb from '../components/MobileBreadcrumb'
 import { getStudents, createStudent, updateStudent, deleteStudent } from '../api'
 import { categoryLabel, categoryBadge, categoryForBirthYear } from '../constants/categories'
 import { isSuperAdmin } from '../utils/currentAdmin'
+import EtCalendar from 'et-calendar-react'
+import { toEC, toGC } from 'kenat'
 
-// All fields matching the backend Student model. No ሁኔታ (currentStatus)
-// field anymore, and no separate family-tab fields - it's all one page now.
+const PHONE_RE = /^\d{10}$/
+
 const EMPTY = {
   firstName: '', fatherName: '', grandfatherName: '', christianName: '',
   birthDay: '', birthMonth: '', birthYear: '',
@@ -27,13 +29,8 @@ export default function Students() {
   const [search,   setSearch]   = useState('')
   const [viewing,  setViewing]  = useState(null)
   const canManage = isSuperAdmin()
-
-  // Category computed live from the birth-year field, so the single form can
-  // relabel/show the right fields before the student is even saved.
   const formCategory = categoryForBirthYear(form.birthYear)
-  const isAdult = formCategory === 'MIDIB_3' // ወጣት - own phone, no family info
-  // ህጻናት & ማእከለውያን share the same layout: mobile field = parent's mobile,
-  // homePhone field = an extra/secondary phone.
+  const isAdult = formCategory === 'MIDIB_3' 
 
   const load = () => {
     setLoading(true)
@@ -60,6 +57,11 @@ export default function Students() {
 
   const save = async () => {
     if (!form.firstName || !form.fatherName) { setError('ስም ያስፈልጋል (firstName እና fatherName)'); return }
+    if (!form.grandfatherName) { setError('የአያት ስም ያስፈልጋል'); return }
+    if (!form.address) { setError('አድራሻ ያስፈልጋል'); return }
+    if (!form.mobile) { setError('ስልክ ቁጥር ያስፈልጋል'); return }
+    if (!PHONE_RE.test(form.mobile)) { setError('ስልክ ቁጥር በትክክል 10 አሃዝ መሆን አለበት (ለምሳሌ 0912345678)'); return }
+    if (form.homePhone && !PHONE_RE.test(form.homePhone)) { setError('ተጨማሪ ስልክ 10 አሃዝ መሆን አለበት'); return }
     if (!form.birthYear) { setError('የልደት ዓ.ም ያስፈልጋል (Ethiopian year)'); return }
     setSaving(true); setError('')
     try {
@@ -133,7 +135,7 @@ export default function Students() {
             <input
               className="form-input"
               style={{ maxWidth: '300px' }}
-              placeholder="🔍 ተማሪ ፈልግ..."
+              placeholder=" ተማሪ ፈልግ..."
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
@@ -221,7 +223,6 @@ export default function Students() {
         </div>
       )}
 
-      {/* Create/Edit  */}
       {modal && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && closeModal()}>
           <div className="modal-box" style={{ maxWidth: '680px', maxHeight: '90vh', overflowY: 'auto' }}>
@@ -233,21 +234,60 @@ export default function Students() {
 
             <div className="form-grid">
               <div className="form-group"><label className="form-label">የመጀመሪያ ስም </label><input className="form-input" value={form.firstName} onChange={e => set('firstName', e.target.value)}  /></div>
-              <div className="form-group"><label className="form-label">የአባት ስም </label><input className="form-input" value={form.fatherName} onChange={e => set('fatherName', e.target.value)}  /></div>
-              <div className="form-group"><label className="form-label">የአያት ስም</label><input className="form-input" value={form.grandfatherName} onChange={e => set('grandfatherName', e.target.value)} /></div>
+              <div className="form-group"><label className="form-label">የአባት ስም *</label><input className="form-input" value={form.fatherName} onChange={e => set('fatherName', e.target.value)}  /></div>
+              <div className="form-group"><label className="form-label">የአያት ስም *</label><input className="form-input" value={form.grandfatherName} onChange={e => set('grandfatherName', e.target.value)} /></div>
               <div className="form-group"><label className="form-label">የክርስትና  ስም</label><input className="form-input" value={form.christianName} onChange={e => set('christianName', e.target.value)}  /></div>
-              <div className="form-group"><label className="form-label">የልደት ቀን (Ethiopian)</label><input className="form-input" value={form.birthDay} onChange={e => set('birthDay', e.target.value)} placeholder="ቀን (1-30)" /></div>
-              <div className="form-group"><label className="form-label">የልደት ወር (Ethiopian)</label><input className="form-input" value={form.birthMonth} onChange={e => set('birthMonth', e.target.value)} placeholder="ወር (1-13)" /></div>
-              <div className="form-group"><label className="form-label">የልደት ዓ.ም  (Ethiopian year)</label><input className="form-input" value={form.birthYear} onChange={e => set('birthYear', e.target.value)}  /></div>
+
+            
+              <div className="form-group">
+                <label className="form-label">የልደት ቀን (Ethiopian)</label>
+                <EtCalendar
+                  calendarType={true}
+                  lang="am"
+                  fullWidth
+                  placeholder="የልደት ቀን ይምረጡ"
+                  value={
+                    form.birthYear && form.birthMonth && form.birthDay
+                      ? (() => {
+                          const gc = toGC(Number(form.birthYear), Number(form.birthMonth), Number(form.birthDay))
+                          return new Date(gc.year, gc.month - 1, gc.day)
+                        })()
+                      : null
+                  }
+                  onChange={(newDate) => {
+                    const ec = toEC(newDate.getFullYear(), newDate.getMonth() + 1, newDate.getDate())
+                    setForm(f => ({ ...f, birthDay: String(ec.day), birthMonth: String(ec.month), birthYear: String(ec.year) }))
+                  }}
+                />
+                {form.birthYear && (
+                  <div style={{ fontSize: '12px', color: 'var(--text-light)', marginTop: '4px' }}>
+                    {form.birthDay}/{form.birthMonth}/{form.birthYear} ዓ.ም
+                  </div>
+                )}
+              </div>
 
               {/* Own mobile: adults get a normal ሞባይል field; children/teens get their PARENT's mobile in this same field */}
               <div className="form-group">
-                <label className="form-label">{isAdult ? 'ሞባይል' : 'የወላጅ ሞባይል'}</label>
-                <input className="form-input" value={form.mobile} onChange={e => set('mobile', e.target.value)} placeholder="09xxxxxxxx" />
+                <label className="form-label">{isAdult ? 'ሞባይል *' : 'የወላጅ ሞባይል *'}</label>
+                <input
+                  className="form-input"
+                  value={form.mobile}
+                  onChange={e => set('mobile', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  placeholder="09xxxxxxxx"
+                  maxLength={10}
+                  inputMode="numeric"
+                />
               </div>
               <div className="form-group">
                 <label className="form-label">ተጨማሪ ስልክ</label>
-                <input className="form-input" value={form.homePhone} onChange={e => set('homePhone', e.target.value)} placeholder="09xxxxxxxx" />
+                <input
+                  className="form-input"
+                  value={form.homePhone}
+                  onChange={e => set('homePhone', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  placeholder="09xxxxxxxx"
+                  maxLength={10}
+                  inputMode="numeric"
+                />
               </div>
 
               {/* Adults only (ወጣት): student/worker status */}
@@ -262,7 +302,7 @@ export default function Students() {
                 </div>
               )}
 
-              <div className="form-group"><label className="form-label">አድራሻ</label><input className="form-input" value={form.address} onChange={e => set('address', e.target.value)} /></div>
+              <div className="form-group"><label className="form-label">አድራሻ *</label><input className="form-input" value={form.address} onChange={e => set('address', e.target.value)} /></div>
               <div className="form-group"><label className="form-label">ክፍለ ከተማ</label><input className="form-input" value={form.subcity} onChange={e => set('subcity', e.target.value)}  /></div>
               <div className="form-group"><label className="form-label">ወረዳ</label><input className="form-input" value={form.woreda} onChange={e => set('woreda', e.target.value)}  /></div>
               <div className="form-group"><label className="form-label">የቤት ቁጥር</label><input className="form-input" value={form.houseNumber} onChange={e => set('houseNumber', e.target.value)} /></div>

@@ -281,7 +281,7 @@ export default function Admins() {
               <div className="form-group"><label className="form-label">ስልክ ቁጥር</label><input className="form-input" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="09xxxxxxxx" /></div>
               <div className="form-group"><label className="form-label">ሙሉ አድራሻ</label><input className="form-input" value={form.address} onChange={e => set('address', e.target.value)} placeholder="አድራሻ" /></div>
               <div className="form-group"><label className="form-label">የክርስትና ስም</label><input className="form-input" value={form.christianName} onChange={e => set('christianName', e.target.value)} placeholder="የክርስትና ስም" /></div>
-              <div className="form-group"><label className="form-label">ሃይማኖታዊ የት/ት ደረጃ</label><input className="form-input" value={form.religiousEducationLevel} onChange={e => set('religiousEducationLevel', e.target.value)} placeholder="ደረጃ" /></div>
+              <div className="form-group"><label className="form-label">የቤተክርስቲያን ማእረግ </label><input className="form-input" value={form.religiousEducationLevel} onChange={e => set('religiousEducationLevel', e.target.value)} placeholder="ደረጃ" /></div>
                            <div className="form-group">
                 <label className="form-label">የአብነት ትምህርት ሁኔታ</label>
                 <input className="form-input" value={form.qeneSchoolStatus} onChange={e => set('qeneSchoolStatus', e.target.value)} placeholder="ቅኔ ቤት ትምህርት ሁኔታ" />
